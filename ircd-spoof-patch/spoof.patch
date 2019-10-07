@@ -95,7 +95,6 @@ diff -ruN irc2.11.2p3.orig/ircd/s_conf.c irc2.11.2p3/ircd/s_conf.c
  			/* trying to find exact conf line in already existing
  			 * conf, so we don't delete old one, just update it */
  			if (
-Binärdateien irc2.11.2p3.orig/ircd/.s_conf.c.swp und irc2.11.2p3/ircd/.s_conf.c.swp sind verschieden.
 diff -ruN irc2.11.2p3.orig/ircd/s_misc.c irc2.11.2p3/ircd/s_misc.c
 --- irc2.11.2p3.orig/ircd/s_misc.c	2009-11-13 21:08:11.000000000 +0100
 +++ irc2.11.2p3/ircd/s_misc.c	2019-09-24 23:00:34.767527724 +0200
@@ -201,7 +200,7 @@ diff -ruN irc2.11.2p3.orig/ircd/s_service.c irc2.11.2p3/ircd/s_service.c
  	else
 diff -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
 --- irc2.11.2p3.orig/ircd/s_user.c	2010-08-12 18:29:30.000000000 +0200
-+++ irc2.11.2p3/ircd/s_user.c	2019-10-07 23:02:46.610448096 +0200
++++ irc2.11.2p3/ircd/s_user.c	2019-10-07 23:18:18.835667608 +0200
 @@ -581,6 +581,9 @@
  			}
  			return exit_client(cptr, cptr, &me, exit_msg[i].longm);
@@ -212,7 +211,7 @@ diff -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
  #ifndef	NO_PREFIX
  		if (IsRestricted(sptr))
  		{
-@@ -596,9 +599,17 @@
+@@ -596,9 +599,16 @@
  			strncpy(&user->username[1], buf2, USERLEN);
  			user->username[USERLEN] = '\0';
  		}
@@ -222,7 +221,6 @@ diff -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
 +		if(IsConfSpoofed(aconf))
 +                {
 +                        prefix = '_';
-+
 +                        *user->username = prefix;
 +                        strncpy(&user->username[1], buf2, USERLEN);
 +                        user->username[USERLEN] = '\0';
@@ -232,7 +230,7 @@ diff -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
  #ifdef UNIXPORT
  		if (IsUnixSocket(sptr))
  		{
-@@ -806,7 +817,7 @@
+@@ -806,7 +816,7 @@
  		sendto_one(acptr,
  				":%s UNICK %s %s %s %s %s %s :%s",
  				user->servp->sid, nick, user->uid,
