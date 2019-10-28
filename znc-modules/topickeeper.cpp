@@ -140,14 +140,13 @@ public:
     }
 
     ~CTopicKeeperMod() override {
-        PutModule("Topic Keeper is unloading");
+        PutModule("Topic Keeper is unloading.");
     }
 
-    EModRet OnRaw(CString &sLine) override {
-        // Topic reply after JOIN
-        if (sLine.Token(1) == "332") {
-            CString topic = sLine.Token(4, true).substr(1);
-            SetNV(nvTopicPrefix + sLine.Token(3).AsLower(), topic);
+    EModRet OnNumericMessage(CNumericMessage& msg) override {
+        if (msg.GetCode() == 332) {
+	    CString topic = msg.GetParam(2);
+            SetNV(nvTopicPrefix + msg.GetParam(1).AsLower(), topic);
         }
 
         return CONTINUE;
