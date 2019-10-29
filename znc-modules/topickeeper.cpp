@@ -316,7 +316,7 @@ public:
 
             if (record != lastUpdateAttempt.end()) {
                 // Check if the bouncer has just sent TOPIC to avoid repetitions during lag
-                if (now - record->second > 120) {
+                if (now - record->second < 120) {
                     continue;
                 }
             }
