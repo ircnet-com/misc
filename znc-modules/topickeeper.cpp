@@ -133,6 +133,9 @@ public:
         // Remove topics of channels where the bouncer is not joined anymore
         removeObsoleteTopics();
 
+        // Save all topics
+        saveAllTopics();
+
         // Add a timer which checks if topics must be updated
         AddTimer(new CTopicJob(this, 10, 0, "Topic Check", "Checks if topics must be updated."));
 
@@ -140,7 +143,7 @@ public:
     }
 
     ~CTopicKeeperMod() override {
-        PutModule("Topic Keeper is unloading.");
+        PutModule("Topic Keeper is unloading");
     }
 
     EModRet OnRaw(CString &sLine) override {
@@ -358,6 +361,20 @@ public:
         }
     }
 
+    void saveAllTopics() {
+        const std::vector<CChan *> &channels = GetNetwork()->GetChans();
+
+        for (CChan *channel: channels) {
+            if (!channel->IsOn()) {
+                continue;
+            }
+
+            if(!channel->GetTopic().empty()) {
+                SetNV(nvTopicPrefix + channel->GetName().AsLower(), channel->GetTopic());
+            }
+        }
+    }
+
     /**
      * Removes obsolete topics.
      */
@@ -379,8 +396,11 @@ public:
                 }
 
                 if (!found) {
-                    DelNV(it->first);
+                    DelNV(it++);
                     // PutModule("Removed saved topic for channel " + channelName);
+                }
+                else {
+                    ++it;
                 }
             }
         }
