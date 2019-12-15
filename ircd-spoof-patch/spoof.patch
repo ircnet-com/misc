@@ -151,7 +151,7 @@ diff -ruN irc2.11.2p3.orig/ircd/s_misc_ext.h irc2.11.2p3/ircd/s_misc_ext.h
  EXTERN int mark_blind_servers (aClient *cptr, aClient *server);
 diff -ruN irc2.11.2p3.orig/ircd/s_serv.c irc2.11.2p3/ircd/s_serv.c
 --- irc2.11.2p3.orig/ircd/s_serv.c	2010-08-12 18:24:31.000000000 +0200
-+++ irc2.11.2p3/ircd/s_serv.c	2019-10-07 23:11:22.796026254 +0200
++++ irc2.11.2p3/ircd/s_serv.c	2019-12-16 00:36:11.456472981 +0100
 @@ -1264,7 +1264,7 @@
  					   acptr->name, acptr->user->uid,
  					   acptr->user->username,
@@ -171,15 +171,6 @@ diff -ruN irc2.11.2p3.orig/ircd/s_serv.c irc2.11.2p3/ircd/s_serv.c
  				sendto_one(sptr, replies[p[1]], ME, BadTo(to),
  					   c, host, (pass) ? "*" : null,
  					   name, port, get_conf_class(tmp),
-@@ -2857,7 +2860,7 @@
- 				IsAnOper(acptr) ? "Oper" : "User",
- 				get_client_class(acptr),
- 				acptr->name, acptr->user->username,
--				acptr->user->host, acptr->user->sip,
-+				acptr->user->host, get_client_ip(acptr),
- #ifdef XLINE
- 				acptr->user2, acptr->user3, 
- #else
 @@ -2880,7 +2883,7 @@
  				IsAnOper(acptr) ? "Oper" : "User", 
  				get_client_class(acptr), 
