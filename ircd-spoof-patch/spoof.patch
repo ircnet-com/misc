@@ -1,6 +1,6 @@
 diff -ruN irc2.11.2p3.orig/common/match.c irc2.11.2p3/common/match.c
---- irc2.11.2p3.orig/common/match.c	2005-02-04 19:40:06.000000000 +0100
-+++ irc2.11.2p3/common/match.c	2019-10-17 09:05:25.225951758 +0200
+--- irc2.11.2p3.orig/common/match.c	2019-12-23 13:46:29.292169326 +0100
++++ irc2.11.2p3/common/match.c	2019-12-23 13:53:13.503888108 +0100
 @@ -334,7 +334,7 @@
  
  	ch = username;
@@ -11,8 +11,17 @@ diff -ruN irc2.11.2p3.orig/common/match.c irc2.11.2p3/common/match.c
  		/* do not allow them as first char */
  		return 0;
 diff -ruN irc2.11.2p3.orig/common/struct_def.h irc2.11.2p3/common/struct_def.h
---- irc2.11.2p3.orig/common/struct_def.h	2009-11-13 21:08:10.000000000 +0100
-+++ irc2.11.2p3/common/struct_def.h	2019-09-24 22:51:09.792535845 +0200
+--- irc2.11.2p3.orig/common/struct_def.h	2019-12-23 13:46:29.292169326 +0100
++++ irc2.11.2p3/common/struct_def.h	2019-12-23 13:57:48.595673491 +0100
+@@ -52,7 +52,7 @@
+ #define	REALLEN	 	50
+ #define	TOPICLEN	255
+ #define	CHANNELLEN	50
+-#define	PASSWDLEN 	20
++#define	PASSWDLEN 	64
+ #define	KEYLEN		23
+ #define	BUFSIZE		512		/* WARNING: *DONT* CHANGE THIS!!!! */
+ #define	MAXRECIPIENTS 	20
 @@ -192,6 +192,7 @@
  #define FLAGS_RESTRICT	0x0010 /* restricted user */
  #define FLAGS_AWAY	0x0020 /* user is away */
@@ -56,8 +65,8 @@ diff -ruN irc2.11.2p3.orig/common/struct_def.h irc2.11.2p3/common/struct_def.h
  #define PFLAG_SERVERONLY	0x00002
  
 diff -ruN irc2.11.2p3.orig/common/support.c irc2.11.2p3/common/support.c
---- irc2.11.2p3.orig/common/support.c	2009-03-15 02:25:32.000000000 +0100
-+++ irc2.11.2p3/common/support.c	2019-09-24 20:44:31.272196056 +0200
+--- irc2.11.2p3.orig/common/support.c	2019-12-23 13:46:29.292169326 +0100
++++ irc2.11.2p3/common/support.c	2019-12-23 13:53:13.503888108 +0100
 @@ -782,7 +782,7 @@
  char	*make_version(void)
  {
@@ -78,8 +87,8 @@ diff -ruN irc2.11.2p3.orig/common/support.c irc2.11.2p3/common/support.c
  }
  
 diff -ruN irc2.11.2p3.orig/ircd/s_conf.c irc2.11.2p3/ircd/s_conf.c
---- irc2.11.2p3.orig/ircd/s_conf.c	2010-08-11 19:16:51.000000000 +0200
-+++ irc2.11.2p3/ircd/s_conf.c	2019-09-24 20:20:29.374024397 +0200
+--- irc2.11.2p3.orig/ircd/s_conf.c	2019-12-23 13:46:29.296169330 +0100
++++ irc2.11.2p3/ircd/s_conf.c	2019-12-23 13:53:13.503888108 +0100
 @@ -613,6 +613,12 @@
  		{
  			find_bounce(cptr, ConfClass(aconf), -1);
@@ -108,8 +117,8 @@ diff -ruN irc2.11.2p3.orig/ircd/s_conf.c irc2.11.2p3/ircd/s_conf.c
  			 * conf, so we don't delete old one, just update it */
  			if (
 diff -ruN irc2.11.2p3.orig/ircd/s_misc.c irc2.11.2p3/ircd/s_misc.c
---- irc2.11.2p3.orig/ircd/s_misc.c	2009-11-13 21:08:11.000000000 +0100
-+++ irc2.11.2p3/ircd/s_misc.c	2019-09-24 23:00:34.767527724 +0200
+--- irc2.11.2p3.orig/ircd/s_misc.c	2019-12-23 13:46:29.296169330 +0100
++++ irc2.11.2p3/ircd/s_misc.c	2019-12-23 13:53:13.503888108 +0100
 @@ -196,7 +196,7 @@
  				(void)sprintf(nbuf, "%s[%.*s@%s]",
  					sptr->name, USERLEN,
@@ -139,8 +148,8 @@ diff -ruN irc2.11.2p3.orig/ircd/s_misc.c irc2.11.2p3/ircd/s_misc.c
   * Form sockhost such that if the host is of form user@host, only the host
   * portion is copied.
 diff -ruN irc2.11.2p3.orig/ircd/s_misc_ext.h irc2.11.2p3/ircd/s_misc_ext.h
---- irc2.11.2p3.orig/ircd/s_misc_ext.h	2004-03-14 18:46:00.000000000 +0100
-+++ irc2.11.2p3/ircd/s_misc_ext.h	2019-09-24 22:06:51.119855303 +0200
+--- irc2.11.2p3.orig/ircd/s_misc_ext.h	2019-12-23 13:46:29.296169330 +0100
++++ irc2.11.2p3/ircd/s_misc_ext.h	2019-12-23 13:53:13.503888108 +0100
 @@ -42,6 +42,7 @@
  EXTERN int check_registered_service (aClient *sptr);
  EXTERN char *get_client_name (aClient *sptr, int showip);
@@ -150,8 +159,8 @@ diff -ruN irc2.11.2p3.orig/ircd/s_misc_ext.h irc2.11.2p3/ircd/s_misc_ext.h
  EXTERN char *my_name_for_link (char *name, Reg int count);
  EXTERN int mark_blind_servers (aClient *cptr, aClient *server);
 diff -ruN irc2.11.2p3.orig/ircd/s_serv.c irc2.11.2p3/ircd/s_serv.c
---- irc2.11.2p3.orig/ircd/s_serv.c	2010-08-12 18:24:31.000000000 +0200
-+++ irc2.11.2p3/ircd/s_serv.c	2019-12-16 00:36:11.456472981 +0100
+--- irc2.11.2p3.orig/ircd/s_serv.c	2019-12-23 13:46:29.296169330 +0100
++++ irc2.11.2p3/ircd/s_serv.c	2019-12-23 13:53:13.507888101 +0100
 @@ -1264,7 +1264,7 @@
  					   acptr->name, acptr->user->uid,
  					   acptr->user->username,
@@ -190,8 +199,8 @@ diff -ruN irc2.11.2p3.orig/ircd/s_serv.c irc2.11.2p3/ircd/s_serv.c
  			MyClient(acptr) ? acptr->user2 : "-",
  			MyClient(acptr) ? acptr->user3 : "-",
 diff -ruN irc2.11.2p3.orig/ircd/s_service.c irc2.11.2p3/ircd/s_service.c
---- irc2.11.2p3.orig/ircd/s_service.c	2010-08-12 03:08:02.000000000 +0200
-+++ irc2.11.2p3/ircd/s_service.c	2019-09-24 22:27:26.652699997 +0200
+--- irc2.11.2p3.orig/ircd/s_service.c	2019-12-23 13:46:29.296169330 +0100
++++ irc2.11.2p3/ircd/s_service.c	2019-12-23 13:53:13.507888101 +0100
 @@ -180,7 +180,7 @@
  			sptr->user->uid,
  			(wants & SERVICE_WANT_USER) ? sptr->user->username : ".",
@@ -202,8 +211,8 @@ diff -ruN irc2.11.2p3.orig/ircd/s_service.c irc2.11.2p3/ircd/s_service.c
  			(wants & SERVICE_WANT_USER) ? sptr->info : "");
  	else
 diff -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
---- irc2.11.2p3.orig/ircd/s_user.c	2010-08-12 18:29:30.000000000 +0200
-+++ irc2.11.2p3/ircd/s_user.c	2019-10-07 23:18:18.835667608 +0200
+--- irc2.11.2p3.orig/ircd/s_user.c	2019-12-23 13:46:29.296169330 +0100
++++ irc2.11.2p3/ircd/s_user.c	2019-12-23 13:53:13.507888101 +0100
 @@ -581,6 +581,9 @@
  			}
  			return exit_client(cptr, cptr, &me, exit_msg[i].longm);
