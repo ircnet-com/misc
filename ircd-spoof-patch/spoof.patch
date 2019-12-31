@@ -1,6 +1,6 @@
 diff -ruN irc2.11.2p3.orig/common/match.c irc2.11.2p3/common/match.c
---- irc2.11.2p3.orig/common/match.c	2019-12-23 13:46:29.292169326 +0100
-+++ irc2.11.2p3/common/match.c	2019-12-23 13:53:13.503888108 +0100
+--- irc2.11.2p3.orig/common/match.c	2005-02-04 19:40:06.000000000 +0100
++++ irc2.11.2p3/common/match.c	2019-12-31 20:13:45.494772468 +0100
 @@ -334,7 +334,7 @@
  
  	ch = username;
@@ -10,9 +10,31 @@ diff -ruN irc2.11.2p3.orig/common/match.c irc2.11.2p3/common/match.c
  	{
  		/* do not allow them as first char */
  		return 0;
+diff -ruN irc2.11.2p3.orig/common/numeric_def.h irc2.11.2p3/common/numeric_def.h
+--- irc2.11.2p3.orig/common/numeric_def.h	2008-06-21 13:59:51.000000000 +0200
++++ irc2.11.2p3/common/numeric_def.h	2019-12-31 20:13:58.150793257 +0100
+@@ -236,6 +236,10 @@
+ #define RPL_ENDOFWHOIS       318
+ #define RPL_WHOISCHANNELS    319
+ 
++#ifdef SPOOF_WHOISCLOAKED
++#define RPL_WHOISCLOAKED     320 /* client is cloaked/spoofed - non-standard use of 320 -- mh 20191230 */
++
++#endif
+ #define RPL_LISTSTART        321
+ #define RPL_LIST             322
+ #define RPL_LISTEND          323
+diff -ruN irc2.11.2p3.orig/common/patchlevel.h irc2.11.2p3/common/patchlevel.h
+--- irc2.11.2p3.orig/common/patchlevel.h	2010-08-13 21:59:43.000000000 +0200
++++ irc2.11.2p3/common/patchlevel.h	2019-12-31 20:13:58.150793257 +0100
+@@ -20,3 +20,4 @@
+ #define PATCHLEVEL "0211020003"		/* for server identification */
+ #define DEVLEVEL 'a'
+ #endif
++#define SPOOF_VERSION "0-" /* release number (followed by a '-' if modified since release) -- mh 20191231 */
 diff -ruN irc2.11.2p3.orig/common/struct_def.h irc2.11.2p3/common/struct_def.h
---- irc2.11.2p3.orig/common/struct_def.h	2019-12-23 13:46:29.292169326 +0100
-+++ irc2.11.2p3/common/struct_def.h	2019-12-23 13:57:48.595673491 +0100
+--- irc2.11.2p3.orig/common/struct_def.h	2009-11-13 21:08:10.000000000 +0100
++++ irc2.11.2p3/common/struct_def.h	2019-12-31 20:13:45.494772468 +0100
 @@ -52,7 +52,7 @@
  #define	REALLEN	 	50
  #define	TOPICLEN	255
@@ -65,8 +87,8 @@ diff -ruN irc2.11.2p3.orig/common/struct_def.h irc2.11.2p3/common/struct_def.h
  #define PFLAG_SERVERONLY	0x00002
  
 diff -ruN irc2.11.2p3.orig/common/support.c irc2.11.2p3/common/support.c
---- irc2.11.2p3.orig/common/support.c	2019-12-23 13:46:29.292169326 +0100
-+++ irc2.11.2p3/common/support.c	2019-12-23 13:53:13.503888108 +0100
+--- irc2.11.2p3.orig/common/support.c	2009-03-15 02:25:32.000000000 +0100
++++ irc2.11.2p3/common/support.c	2019-12-31 20:13:45.494772468 +0100
 @@ -782,7 +782,7 @@
  char	*make_version(void)
  {
@@ -87,8 +109,8 @@ diff -ruN irc2.11.2p3.orig/common/support.c irc2.11.2p3/common/support.c
  }
  
 diff -ruN irc2.11.2p3.orig/ircd/s_conf.c irc2.11.2p3/ircd/s_conf.c
---- irc2.11.2p3.orig/ircd/s_conf.c	2019-12-23 13:46:29.296169330 +0100
-+++ irc2.11.2p3/ircd/s_conf.c	2019-12-23 13:53:13.503888108 +0100
+--- irc2.11.2p3.orig/ircd/s_conf.c	2010-08-11 19:16:51.000000000 +0200
++++ irc2.11.2p3/ircd/s_conf.c	2019-12-31 20:13:45.498772535 +0100
 @@ -613,6 +613,12 @@
  		{
  			find_bounce(cptr, ConfClass(aconf), -1);
@@ -116,9 +138,62 @@ diff -ruN irc2.11.2p3.orig/ircd/s_conf.c irc2.11.2p3/ircd/s_conf.c
  			/* trying to find exact conf line in already existing
  			 * conf, so we don't delete old one, just update it */
  			if (
+diff -ruN irc2.11.2p3.orig/ircd/s_debug.c irc2.11.2p3/ircd/s_debug.c
+--- irc2.11.2p3.orig/ircd/s_debug.c	2009-11-13 21:25:55.000000000 +0100
++++ irc2.11.2p3/ircd/s_debug.c	2019-12-31 20:13:58.150793257 +0100
+@@ -341,6 +341,34 @@
+ 	sendto_one(cptr, ":%s %d %s :CCL:0x%X", ME, RPL_STATSDEFINE, nick,
+ 		CLIENTS_CHANNEL_LEVEL);
+ #endif
++
++#ifdef SPOOF_VERSION
++#ifdef SPOOF_STATSDEFINE
++	/* spoof defines
++	 *
++	 * Spoof:<version> SN:<notice> SW:<whois>
++	 *
++	 * version: SPOOF_VERSION string
++	 * notice:  1 if SPOOF_NOTICE is defined, otherwise 0
++	 * whois:   1 if SPOOF_WHOISCLOAKED is defined, otherwise 0
++	 *
++	 * -- mh 20191231 */
++	sendto_one(cptr, ":%s %d %s :Spoof:%s SN:%d SW:%d", ME, RPL_STATSDEFINE, nick,
++		SPOOF_VERSION,
++#ifdef SPOOF_NOTICE
++		1,
++#else
++		0,
++#endif
++#ifdef SPOOF_WHOISCLOAKED
++		1
++#else
++		0
++#endif
++	);
++
++#endif
++#endif
+ 	/* note that it's safe to check extend[1], it will at worst be null.
+ 	** if we ever need extend[2], check length first... --B. */
+ 	if (extend[1] == '5')
+diff -ruN irc2.11.2p3.orig/ircd/s_err.c irc2.11.2p3/ircd/s_err.c
+--- irc2.11.2p3.orig/ircd/s_err.c	2010-08-12 18:24:31.000000000 +0200
++++ irc2.11.2p3/ircd/s_err.c	2019-12-31 20:13:58.150793257 +0100
+@@ -352,7 +352,11 @@
+ #endif
+ /* 318 RPL_ENDOFWHOIS */	":%s 318 %s %s :End of WHOIS list.",
+ /* 319 RPL_WHOISCHANNELS */	":%s 319 %s %s :%s",
++#ifdef SPOOF_WHOISCLOAKED
++/* 320 RPL_WHOISCLOAKED */  ":%s 320 %s %s :%s", /* client is cloaked/spoofed - non-standard use of 320 -- mh 20191230 */
++#else
+ /* 320 */ (char *)NULL,
++#endif
+ /* 321 RPL_LISTSTART */	":%s 321 %s Channel :Users  Name",
+ /* 322 RPL_LIST */	":%s 322 %s %s %d :%s",
+ /* 323 RPL_LISTEND */	":%s 323 %s :End of LIST",
 diff -ruN irc2.11.2p3.orig/ircd/s_misc.c irc2.11.2p3/ircd/s_misc.c
---- irc2.11.2p3.orig/ircd/s_misc.c	2019-12-23 13:46:29.296169330 +0100
-+++ irc2.11.2p3/ircd/s_misc.c	2019-12-23 13:53:13.503888108 +0100
+--- irc2.11.2p3.orig/ircd/s_misc.c	2009-11-13 21:08:11.000000000 +0100
++++ irc2.11.2p3/ircd/s_misc.c	2019-12-31 20:13:45.498772535 +0100
 @@ -196,7 +196,7 @@
  				(void)sprintf(nbuf, "%s[%.*s@%s]",
  					sptr->name, USERLEN,
@@ -148,8 +223,8 @@ diff -ruN irc2.11.2p3.orig/ircd/s_misc.c irc2.11.2p3/ircd/s_misc.c
   * Form sockhost such that if the host is of form user@host, only the host
   * portion is copied.
 diff -ruN irc2.11.2p3.orig/ircd/s_misc_ext.h irc2.11.2p3/ircd/s_misc_ext.h
---- irc2.11.2p3.orig/ircd/s_misc_ext.h	2019-12-23 13:46:29.296169330 +0100
-+++ irc2.11.2p3/ircd/s_misc_ext.h	2019-12-23 13:53:13.503888108 +0100
+--- irc2.11.2p3.orig/ircd/s_misc_ext.h	2004-03-14 18:46:00.000000000 +0100
++++ irc2.11.2p3/ircd/s_misc_ext.h	2019-12-31 20:13:45.498772535 +0100
 @@ -42,6 +42,7 @@
  EXTERN int check_registered_service (aClient *sptr);
  EXTERN char *get_client_name (aClient *sptr, int showip);
@@ -159,8 +234,8 @@ diff -ruN irc2.11.2p3.orig/ircd/s_misc_ext.h irc2.11.2p3/ircd/s_misc_ext.h
  EXTERN char *my_name_for_link (char *name, Reg int count);
  EXTERN int mark_blind_servers (aClient *cptr, aClient *server);
 diff -ruN irc2.11.2p3.orig/ircd/s_serv.c irc2.11.2p3/ircd/s_serv.c
---- irc2.11.2p3.orig/ircd/s_serv.c	2019-12-23 13:46:29.296169330 +0100
-+++ irc2.11.2p3/ircd/s_serv.c	2019-12-23 13:53:13.507888101 +0100
+--- irc2.11.2p3.orig/ircd/s_serv.c	2010-08-12 18:24:31.000000000 +0200
++++ irc2.11.2p3/ircd/s_serv.c	2019-12-31 20:13:45.498772535 +0100
 @@ -1264,7 +1264,7 @@
  					   acptr->name, acptr->user->uid,
  					   acptr->user->username,
@@ -199,8 +274,8 @@ diff -ruN irc2.11.2p3.orig/ircd/s_serv.c irc2.11.2p3/ircd/s_serv.c
  			MyClient(acptr) ? acptr->user2 : "-",
  			MyClient(acptr) ? acptr->user3 : "-",
 diff -ruN irc2.11.2p3.orig/ircd/s_service.c irc2.11.2p3/ircd/s_service.c
---- irc2.11.2p3.orig/ircd/s_service.c	2019-12-23 13:46:29.296169330 +0100
-+++ irc2.11.2p3/ircd/s_service.c	2019-12-23 13:53:13.507888101 +0100
+--- irc2.11.2p3.orig/ircd/s_service.c	2010-08-12 03:08:02.000000000 +0200
++++ irc2.11.2p3/ircd/s_service.c	2019-12-31 20:13:45.498772535 +0100
 @@ -180,7 +180,7 @@
  			sptr->user->uid,
  			(wants & SERVICE_WANT_USER) ? sptr->user->username : ".",
@@ -211,8 +286,8 @@ diff -ruN irc2.11.2p3.orig/ircd/s_service.c irc2.11.2p3/ircd/s_service.c
  			(wants & SERVICE_WANT_USER) ? sptr->info : "");
  	else
 diff -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
---- irc2.11.2p3.orig/ircd/s_user.c	2019-12-23 13:46:29.296169330 +0100
-+++ irc2.11.2p3/ircd/s_user.c	2019-12-23 13:53:13.507888101 +0100
+--- irc2.11.2p3.orig/ircd/s_user.c	2010-08-12 18:29:30.000000000 +0200
++++ irc2.11.2p3/ircd/s_user.c	2019-12-31 20:13:58.150793257 +0100
 @@ -581,6 +581,9 @@
  			}
  			return exit_client(cptr, cptr, &me, exit_msg[i].longm);
@@ -242,7 +317,22 @@ diff -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
  #ifdef UNIXPORT
  		if (IsUnixSocket(sptr))
  		{
-@@ -806,7 +816,7 @@
+@@ -783,6 +793,14 @@
+ 				" but still matches channel MODEs.",
+ 				ME, nick);
+ 		}
++#ifdef SPOOF_NOTICE
++		/* send a notice to client if the connection is spoofed.
++		 * notice is defined as SPOOF_NOTICE in config.h -- mh 20191230 */
++		if (IsConfSpoofed(sptr->confs->value.aconf))
++		{
++			sendto_one(sptr, ":%s NOTICE %s :%s", ME, nick, SPOOF_NOTICE);
++		}
++#endif
+ 		send_umode(sptr, sptr, 0, ALL_UMODES, buf);
+ 		nextping = timeofday;
+ 		
+@@ -806,7 +824,7 @@
  		sendto_one(acptr,
  				":%s UNICK %s %s %s %s %s %s :%s",
  				user->servp->sid, nick, user->uid,
@@ -251,3 +341,53 @@ diff -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
  				(*buf) ? buf : "+", sptr->info);
  	}	/* for(my-leaf-servers) */
  #ifdef	USE_SERVICES
+@@ -2040,6 +2058,15 @@
+ 	if (user->flags & FLAGS_AWAY)
+ 		send_away(sptr, user->bcptr);
+ 
++#ifdef SPOOF_WHOISCLOAKED
++	/* send a 320 numeric reply if client is spoofed.
++	 * reply defined as SPOOF_WHOISCLOAKED in config.h -- mh 20191230 */
++	if (IsSpoofed(acptr))
++	{
++		sendto_one(sptr, replies[RPL_WHOISCLOAKED], ME, BadTo(sptr->name), name, SPOOF_WHOISCLOAKED);
++	}
++
++#endif
+ 	if (IsAnOper(acptr))
+ 		sendto_one(sptr, replies[RPL_WHOISOPERATOR], ME, BadTo(sptr->name), name);
+ 
+diff -ruN irc2.11.2p3.orig/support/config.h.dist irc2.11.2p3/support/config.h.dist
+--- irc2.11.2p3.orig/support/config.h.dist	2010-08-13 21:53:03.000000000 +0200
++++ irc2.11.2p3/support/config.h.dist	2019-12-31 20:13:58.150793257 +0100
+@@ -139,6 +139,30 @@
+ #define	OPER_KILL_REMOTE
+ 
+ /*
++ * spoof
++ *
++ */
++	/*
++	 * undefine SPOOF_NOTICE to disable sending a notice to cloaked clients
++	 * when connecting
++	 *
++	 */
++	#define SPOOF_NOTICE "Due to an administrative decision, your connection is cloaked."
++
++	/*
++	 * undefine SPOOF_WHOISCLOAKED to disable sending a 320 numeric in /WHOIS
++	 * reply for cloaked (local) clients. non-standard use of 320.
++	 *
++	 */
++	#define SPOOF_WHOISCLOAKED "connection is cloaked (spoof)"
++
++	/*
++	 * undefine SPOOF_STATSDEFINE to disable showing spoof defines in /STATS d
++	 *
++	 */
++	#define SPOOF_STATSDEFINE
++
++/*
+  * Maximum number of network connections your server will allow.  This must
+  * not exceed OS limit of max. number of open file descriptors available upon
+  * ircd start.
