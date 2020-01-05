@@ -1,95 +1,191 @@
-diff -ruN irc2.11.2p3.orig/common/match.c irc2.11.2p3/common/match.c
---- irc2.11.2p3.orig/common/match.c	2005-02-04 19:40:06.000000000 +0100
-+++ irc2.11.2p3/common/match.c	2019-12-31 20:13:45.494772468 +0100
-@@ -334,7 +334,7 @@
+diff '--exclude=*.rej' -prNU 7 old/common/match.c new/common/match.c
+--- old/common/match.c
++++ new/common/match.c
+@@ -330,15 +330,20 @@ int	isvalidusername(char *username)
+ {
+ 	Reg char	*ch;
+ 	int	an=0;
+ 	int	nan=0;
  
  	ch = username;
  	if (*ch == '+' || *ch == '=' || *ch == '-' ||
--		*ch == '^' || *ch == '~')
++#ifdef SPOOF
++		/* spoof adds an additional ident character: _ */
 +		*ch == '^' || *ch == '~' || *ch == '_')
++#else
+ 		*ch == '^' || *ch == '~')
++#endif
  	{
  		/* do not allow them as first char */
  		return 0;
-diff -ruN irc2.11.2p3.orig/common/numeric_def.h irc2.11.2p3/common/numeric_def.h
---- irc2.11.2p3.orig/common/numeric_def.h	2008-06-21 13:59:51.000000000 +0200
-+++ irc2.11.2p3/common/numeric_def.h	2019-12-31 20:13:58.150793257 +0100
-@@ -236,6 +236,10 @@
+ 	}
+ 	for (; *ch; ch++)
+ 	{
+ 		if (!isvaliduser(*ch))
+diff '--exclude=*.rej' -prNU 7 old/common/numeric_def.h new/common/numeric_def.h
+--- old/common/numeric_def.h
++++ new/common/numeric_def.h
+@@ -231,15 +231,17 @@
+ #define	RPL_ENDOFWHOWAS      369
+ 
+ #define RPL_WHOISCHANOP      316 /* redundant and not needed but reserved */
+ #define RPL_WHOISIDLE        317
+ 
  #define RPL_ENDOFWHOIS       318
  #define RPL_WHOISCHANNELS    319
- 
+-
 +#ifdef SPOOF_WHOISCLOAKED
 +#define RPL_WHOISCLOAKED     320 /* client is cloaked/spoofed - non-standard use of 320 -- mh 20191230 */
-+
 +#endif
  #define RPL_LISTSTART        321
  #define RPL_LIST             322
  #define RPL_LISTEND          323
-diff -ruN irc2.11.2p3.orig/common/patchlevel.h irc2.11.2p3/common/patchlevel.h
---- irc2.11.2p3.orig/common/patchlevel.h	2010-08-13 21:59:43.000000000 +0200
-+++ irc2.11.2p3/common/patchlevel.h	2019-12-31 20:13:58.150793257 +0100
-@@ -20,3 +20,4 @@
+ #define RPL_CHANNELMODEIS    324
+ #define RPL_UNIQOPIS         325
+ 
+ #define RPL_NOTOPIC          331
+diff '--exclude=*.rej' -prNU 7 old/common/patchlevel.h new/common/patchlevel.h
+--- old/common/patchlevel.h
++++ new/common/patchlevel.h
+@@ -16,7 +16,9 @@
+  *   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+  */
+ 
+ #ifndef	PATCHLEVEL
  #define PATCHLEVEL "0211020003"		/* for server identification */
  #define DEVLEVEL 'a'
  #endif
-+#define SPOOF_VERSION "0-" /* release number (followed by a '-' if modified since release) -- mh 20191231 */
-diff -ruN irc2.11.2p3.orig/common/struct_def.h irc2.11.2p3/common/struct_def.h
---- irc2.11.2p3.orig/common/struct_def.h	2009-11-13 21:08:10.000000000 +0100
-+++ irc2.11.2p3/common/struct_def.h	2019-12-31 20:13:45.494772468 +0100
-@@ -52,7 +52,7 @@
++#define SPOOF_VERSION "1" /* release number (followed by a '-' if modified since release) -- mh 20191231 */
++#define PASSOPTS_VERSION "1" /* release number (followed by a '-' if modified since release) -- mh 20200105 */
+diff '--exclude=*.rej' -prNU 7 old/common/struct_def.h new/common/struct_def.h
+--- old/common/struct_def.h
++++ new/common/struct_def.h
+@@ -48,15 +48,19 @@ typedef struct        LineItem aExtData;
+ 
+ #define	NICKLEN		15	/* Must be the same network-wide. */
+ #define UIDLEN		9	/* must not be bigger than NICKLEN --Beeth */
+ #define	USERLEN		10
  #define	REALLEN	 	50
  #define	TOPICLEN	255
  #define	CHANNELLEN	50
--#define	PASSWDLEN 	20
-+#define	PASSWDLEN 	128
++#ifdef SPOOF_PASSWDLEN
++#define	PASSWDLEN 	SPOOF_PASSWDLEN
++#else
+ #define	PASSWDLEN 	20
++#endif
  #define	KEYLEN		23
  #define	BUFSIZE		512		/* WARNING: *DONT* CHANGE THIS!!!! */
  #define	MAXRECIPIENTS 	20
-@@ -192,6 +192,7 @@
+ #define	MAXBANS		64
+ #define	MAXBANLENGTH	2048
+ #define	BANLEN		(USERLEN + NICKLEN + HOSTLEN + 3)
+ #define MAXPENALTY	10
+@@ -188,17 +192,23 @@ typedef enum Status {
+ #define	FLAGS_OPER	0x0001 /* operator */
+ #define	FLAGS_LOCOP	0x0002 /* local operator -- SRB */
+ #define	FLAGS_WALLOP	0x0004 /* send wallops to them */
+ #define	FLAGS_INVISIBLE	0x0008 /* makes user invisible */
  #define FLAGS_RESTRICT	0x0010 /* restricted user */
  #define FLAGS_AWAY	0x0020 /* user is away */
  #define FLAGS_EXEMPT    0x0040 /* user is exempted from k-lines */
++#ifdef SPOOF
 +#define FLAGS_SPOOFED   0x0080 /* user is spoofed */
++#endif
  #ifdef XLINE
  #define FLAGS_XLINED	0x0100	/* X-lined client */
  #endif
-@@ -220,6 +221,7 @@
++#ifdef PASSOPTS
++#define FLAGS_REQPASS   0x0200 /* require the given password match an I-line password to connect --mh 20200102 */
++#endif
+ #define	SEND_UMODES	(FLAGS_INVISIBLE|FLAGS_OPER|FLAGS_WALLOP|FLAGS_AWAY|FLAGS_RESTRICT)
+ #define	ALL_UMODES	(SEND_UMODES|FLAGS_LOCOP)
+ 
+ /*
+  * user flags macros.
+  */
+ #define	IsOper(x)		((x)->user && (x)->user->flags & FLAGS_OPER)
+@@ -216,14 +226,20 @@ typedef enum Status {
+ #endif
+ #define	IsListener(x)		((x)->flags & FLAGS_LISTEN)
+ #define IsListenerInactive(x)	((x)->flags & FLAGS_LISTENINACTIVE)
+ #define	IsLocal(x)		(MyConnect(x) && (x)->flags & FLAGS_LOCAL)
  #define	IsDead(x)		((x)->flags & FLAGS_DEADSOCK)
  #define	IsBursting(x)		(!((x)->flags & FLAGS_EOB))
  #define IsKlineExempt(x)        ((x)->user && (x)->user->flags & FLAGS_EXEMPT)
-+#define IsSpoofed(x)            ((x)->user && (x)->user->flags & FLAGS_SPOOFED)
++#ifdef PASSOPTS
++#define IsReqPass(x)      ((x)->user && (x)->user->flags & FLAGS_REQPASS)
++#endif
++#ifdef SPOOF
++#define IsSpoofed(x)      ((x)->user && (x)->user->flags & FLAGS_SPOOFED)
++#endif
  
  #define	SetDead(x)		((x)->flags |= FLAGS_DEADSOCK)
  #define	CBurst(x)		((x)->flags & FLAGS_CBURST)
-@@ -238,6 +240,7 @@
+ #define	SetOper(x)		((x)->user->flags |= FLAGS_OPER, \
+ 				 (x)->status = STAT_OPER)
+ #define	SetLocOp(x)		((x)->user->flags |= FLAGS_LOCOP, \
+ 				 (x)->status = STAT_OPER)
+@@ -234,14 +250,20 @@ typedef enum Status {
+ #define	SetUnixSock(x)		((x)->flags |= FLAGS_UNIX)
+ #endif
+ #define	SetDNS(x)		((x)->flags |= FLAGS_DOINGDNS)
+ #define	SetDoneXAuth(x)		((x)->flags |= FLAGS_XAUTHDONE)
  #define	SetEOB(x)		((x)->flags |= FLAGS_EOB)
  #define SetListenerInactive(x)	((x)->flags |= FLAGS_LISTENINACTIVE)
  #define SetKlineExempt(x)	((x)->user->flags |= FLAGS_EXEMPT)
-+#define SetSpoofed(x)		((x)->user->flags |= FLAGS_SPOOFED)
++#ifdef PASSOPTS
++#define SetReqPass(x)       ((x)->user->flags |= FLAGS_REQPASS)
++#endif
++#ifdef SPOOF
++#define SetSpoofed(x)       ((x)->user->flags |= FLAGS_SPOOFED)
++#endif
  
  #define	DoingDNS(x)		((x)->flags & FLAGS_DOINGDNS)
  #define	DoingAuth(x)		((x)->flags & FLAGS_AUTH)
-@@ -375,7 +378,7 @@
+ #define	DoingXAuth(x)		((x)->flags & FLAGS_XAUTH)
+ #define	WaitingXAuth(x)		((x)->flags & FLAGS_WXAUTH)
+ #define	DoneXAuth(x)		((x)->flags & FLAGS_XAUTHDONE)
+ #define	NoNewLine(x)		((x)->flags & FLAGS_NONL)
+@@ -371,25 +393,31 @@ struct	ListItem	{
+ #define CFLAG_KEXEMPT		0x00008
+ #define CFLAG_NORESOLVE		0x00010
+ #define CFLAG_FALL		0x00020
+ #define CFLAG_NORESOLVEMATCH	0x00040
  #ifdef XLINE
  #define CFLAG_XEXEMPT		0x00080
  #endif
--
-+#define CFLAG_SPOOFED		0x00200
++#ifdef SPOOF
++#define CFLAG_SPOOFED       0x00200
++#endif
+ 
  #define IsConfRestricted(x)	((x)->flags & CFLAG_RESTRICTED)
  #define IsConfRNoDNS(x)		((x)->flags & CFLAG_RNODNS)
  #define IsConfRNoIdent(x)	((x)->flags & CFLAG_RNOIDENT)
-@@ -386,7 +389,7 @@
+ #define IsConfKlineExempt(x)	((x)->flags & CFLAG_KEXEMPT)
+ #define IsConfNoResolve(x)	((x)->flags & CFLAG_NORESOLVE)
+ #define IsConfNoResolveMatch(x)	((x)->flags & CFLAG_NORESOLVEMATCH)
+ #define IsConfFallThrough(x)	((x)->flags & CFLAG_FALL)
  #ifdef XLINE
  #define IsConfXlineExempt(x)	((x)->flags & CFLAG_XEXEMPT)
  #endif
--
-+#define IsConfSpoofed(x)	((x)->flags & CFLAG_SPOOFED)
++#ifdef SPOOF
++#define IsConfSpoofed(x)        ((x)->flags & CFLAG_SPOOFED)
++#endif
+ 
  #define PFLAG_DELAYED		0x00001
  #define PFLAG_SERVERONLY	0x00002
  
-diff -ruN irc2.11.2p3.orig/common/support.c irc2.11.2p3/common/support.c
---- irc2.11.2p3.orig/common/support.c	2009-03-15 02:25:32.000000000 +0100
-+++ irc2.11.2p3/common/support.c	2019-12-31 20:13:45.494772468 +0100
-@@ -782,7 +782,7 @@
+ #define IsConfDelayed(x)	((x)->flags & PFLAG_DELAYED)
+ #define IsConfServeronly(x)	((x)->flags & PFLAG_SERVERONLY)
+ 
+diff '--exclude=*.rej' -prNU 7 old/common/support.c new/common/support.c
+--- old/common/support.c
++++ new/common/support.c
+@@ -778,26 +778,34 @@ dgetsreturnbuf:
+ 
+ /*
+  * Make 'readable' version string.
+  */
  char	*make_version(void)
  {
  	int ve, re, mi, dv, pl;
@@ -98,88 +194,180 @@ diff -ruN irc2.11.2p3.orig/common/support.c irc2.11.2p3/common/support.c
  
  	sscanf(PATCHLEVEL, "%2d%2d%2d%2d%2d", &ve, &re, &mi, &dv, &pl);
  	/* version & revision */
-@@ -794,6 +794,9 @@
+ 	sprintf(ver, "%d.%d", ve, (mi == 99) ? re + 1 : re);
+ 	if (mi == 99) mi = -1;
+ 	/* minor revision */
+ 	sprintf(ver + strlen(ver), ".%d", dv ? mi+1 : mi);
+ 	if (dv)	/* alpha/beta, note how visual patchlevel is raised above */
  		sprintf(ver + strlen(ver), "%c%d", DEVLEVEL, dv);
  	if (pl)	/* patchlevel */
  		sprintf(ver + strlen(ver), "p%d", pl);
 +
++#ifdef PASSOPTS
++	strcat(ver, "+po");
++#endif
++#ifdef SPOOF
 +	strcat(ver, "+spoof");
++#endif
 +
  	return mystrdup(ver);
  }
  
-diff -ruN irc2.11.2p3.orig/ircd/s_conf.c irc2.11.2p3/ircd/s_conf.c
---- irc2.11.2p3.orig/ircd/s_conf.c	2010-08-11 19:16:51.000000000 +0200
-+++ irc2.11.2p3/ircd/s_conf.c	2019-12-31 20:13:45.498772535 +0100
-@@ -613,6 +613,12 @@
+ #ifndef CLIENT_COMPILE
+ /* Make RPL_ISUPPORT (005) numeric contents */
+ char	**make_isupport(void)
+ {
+diff '--exclude=*.rej' -prNU 7 old/ircd/s_conf.c new/ircd/s_conf.c
+--- old/ircd/s_conf.c
++++ new/ircd/s_conf.c
+@@ -502,14 +502,23 @@ int	attach_Iline(aClient *cptr, struct h
+ 		** I don't know. Anyway, this is an error! --B. */
+ 		if (!aconf->host || !aconf->name)
+ 		{
+ 			/* Try another I:line. */
+ 			continue;
+ 		}
+ 
++#ifdef PASSOPTS
++		/* try another I-line if client password is required to match
++		 * I-line password, and I-line does not have one --mh 20200102 */
++		if (IsReqPass(cptr) && BadPtr(aconf->passwd))
++		{
++			continue;
++		}
++#endif
++
+ 		/* If anything in aconf->name... */
+ 		if (*aconf->name)
+ 		{
+ 			int	namematched = 0;
+ 
+ 			if (hp)
+ 			{
+@@ -609,19 +618,39 @@ int	attach_Iline(aClient *cptr, struct h
+ 			get_sockhost(cptr, uhost+ulen);
+ 		}
+ 		/* Note that attach_conf() should not return -2. */
+ 		if ((retval = attach_conf(cptr, aconf)) < -1)
  		{
  			find_bounce(cptr, ConfClass(aconf), -1);
  		}
++#ifdef SPOOF
 +		if(IsConfSpoofed(aconf))
 +		{
 +			strcpy(cptr->sockhost, aconf->name2);
 +			strcpy(cptr->user->host, aconf->name2);
 +			SetSpoofed(cptr);
 +		}
++#endif
  		break;
  	}
  	if (retval == -2)
-@@ -1798,7 +1804,12 @@
+ 	{
+-		find_bounce(cptr, 0, -2);
++#ifdef PASSOPTS
++		if (IsReqPass(cptr))
++		{
++			sendto_one(cptr, replies[ERR_PASSWDMISMATCH], ME, BadTo(cptr->name));
++			retval = -8; /* EXITC_BADPASS */
++		}
++		else
++		{
++			find_bounce(cptr, 0, -2);
++		}
++#else
++        find_bounce(cptr, 0, -2);
++#endif
+ 	}
+ 	return retval;
+ }
+ 
+ /*
+  * Find the single N line and return pointer to it (from list).
+  * If more than one then return NULL pointer.
+@@ -1795,14 +1824,23 @@ int 	initconf(int opt)
+ 			{
+ 				aconf->flags |=
+ 					((aconf->status == CONF_CLIENT) ?
  					iline_flags_parse(tmp3) :
  					pline_flags_parse(tmp3));
  			}
--
+ 
++#ifdef SPOOF
 +			/* any spoofed host in this line? */
 +			if(aconf->status & CONF_CLIENT && tmp4 && *tmp4)
 +			{
 +				DupString(aconf->name2, tmp4);
 +				aconf->flags |= CFLAG_SPOOFED;
-+			}	
++			}
++#endif
++
  			/* trying to find exact conf line in already existing
  			 * conf, so we don't delete old one, just update it */
  			if (
-diff -ruN irc2.11.2p3.orig/ircd/s_debug.c irc2.11.2p3/ircd/s_debug.c
---- irc2.11.2p3.orig/ircd/s_debug.c	2009-11-13 21:25:55.000000000 +0100
-+++ irc2.11.2p3/ircd/s_debug.c	2019-12-31 20:13:58.150793257 +0100
-@@ -341,6 +341,34 @@
+ #ifdef FASTER_ILINE_REHASH
+ 				(aconf->status & CONF_LISTEN_PORT) &&
+ #endif
+ 				(bconf = find_conf_entry(aconf, aconf->status)))
+diff '--exclude=*.rej' -prNU 7 old/ircd/s_debug.c new/ircd/s_debug.c
+--- old/ircd/s_debug.c
++++ new/ircd/s_debug.c
+@@ -337,14 +337,47 @@ void	send_defines(aClient *cptr, char *n
+ 		ME, RPL_STATSDEFINE, nick, iconf.aconnect, iconf.caccept, 
+ 		iconf.split, SPLIT_SERVERS, iconf.split_minservers, istat.is_eobservers,
+ 		SPLIT_USERS, iconf.split_minusers, istat.is_user[0] + istat.is_user[1]);
+ #ifdef CLIENTS_CHANNEL
  	sendto_one(cptr, ":%s %d %s :CCL:0x%X", ME, RPL_STATSDEFINE, nick,
  		CLIENTS_CHANNEL_LEVEL);
  #endif
 +
-+#ifdef SPOOF_VERSION
 +#ifdef SPOOF_STATSDEFINE
 +	/* spoof defines
 +	 *
-+	 * Spoof:<version> SN:<notice> SW:<whois>
++	 * Spoof:<version> SN:<notice> SW:<whois> PO:<passopts>
 +	 *
-+	 * version: SPOOF_VERSION string
-+	 * notice:  1 if SPOOF_NOTICE is defined, otherwise 0
-+	 * whois:   1 if SPOOF_WHOISCLOAKED is defined, otherwise 0
++	 * version:  SPOOF_VERSION string
++	 * notice:   1 if SPOOF_NOTICE is defined, otherwise 0
++	 * whois:    1 if SPOOF_WHOISCLOAKED is defined, otherwise 0
++	 * passopts: 0 if PASSOPTS is not defined, otherwise PASSOPTS_VERSION string
 +	 *
-+	 * -- mh 20191231 */
-+	sendto_one(cptr, ":%s %d %s :Spoof:%s SN:%d SW:%d", ME, RPL_STATSDEFINE, nick,
-+		SPOOF_VERSION,
++	 * -- mh 20200105  */
++	sendto_one(cptr, ":%s %d %s :Spoof:%s SN:%d SW:%d PO:%s", ME, RPL_STATSDEFINE, nick, SPOOF_VERSION,
 +#ifdef SPOOF_NOTICE
-+		1,
++		1
 +#else
-+		0,
++		0
 +#endif
++		,
 +#ifdef SPOOF_WHOISCLOAKED
 +		1
 +#else
 +		0
 +#endif
++		,
++#ifdef PASSOPTS
++		PASSOPTS_VERSION
++#else
++		"0"
++#endif
 +	);
++#endif
 +
-+#endif
-+#endif
  	/* note that it's safe to check extend[1], it will at worst be null.
  	** if we ever need extend[2], check length first... --B. */
  	if (extend[1] == '5')
-diff -ruN irc2.11.2p3.orig/ircd/s_err.c irc2.11.2p3/ircd/s_err.c
---- irc2.11.2p3.orig/ircd/s_err.c	2010-08-12 18:24:31.000000000 +0200
-+++ irc2.11.2p3/ircd/s_err.c	2019-12-31 20:13:58.150793257 +0100
-@@ -352,7 +352,11 @@
+ 	{
+ 		char **isup = isupport;
+ 		while (*isup)
+ 		{
+diff '--exclude=*.rej' -prNU 7 old/ircd/s_err.c new/ircd/s_err.c
+--- old/ircd/s_err.c
++++ new/ircd/s_err.c
+@@ -348,15 +348,19 @@ char *	replies[] = {
+ #ifdef WHOIS_SIGNON_TIME
+ /* 317 RPL_WHOISIDLE */	":%s 317 %s %s %ld %ld :seconds idle, signon time",
+ #else
+ /* 317 RPL_WHOISIDLE */	":%s 317 %s %s %ld :seconds idle",
  #endif
  /* 318 RPL_ENDOFWHOIS */	":%s 318 %s %s :End of WHOIS list.",
  /* 319 RPL_WHOISCHANNELS */	":%s 319 %s %s :%s",
@@ -191,22 +379,42 @@ diff -ruN irc2.11.2p3.orig/ircd/s_err.c irc2.11.2p3/ircd/s_err.c
  /* 321 RPL_LISTSTART */	":%s 321 %s Channel :Users  Name",
  /* 322 RPL_LIST */	":%s 322 %s %s %d :%s",
  /* 323 RPL_LISTEND */	":%s 323 %s :End of LIST",
-diff -ruN irc2.11.2p3.orig/ircd/s_misc.c irc2.11.2p3/ircd/s_misc.c
---- irc2.11.2p3.orig/ircd/s_misc.c	2009-11-13 21:08:11.000000000 +0100
-+++ irc2.11.2p3/ircd/s_misc.c	2019-12-31 20:13:45.498772535 +0100
-@@ -196,7 +196,7 @@
+ /* 324 RPL_CHANNELMODEIS */	":%s 324 %s %s %s %s",
+ /* 325 RPL_UNIQOPIS */	":%s 325 %s %s %s",
+ /* 326 */ (char *)NULL,
+ /* 327 */ (char *)NULL,
+diff '--exclude=*.rej' -prNU 7 old/ircd/s_misc.c new/ircd/s_misc.c
+--- old/ircd/s_misc.c
++++ new/ircd/s_misc.c
+@@ -192,15 +192,19 @@ char	*get_client_name(aClient *sptr, int
+ 		else
+ #endif
+ 		    {
+ 			if (showip)
  				(void)sprintf(nbuf, "%s[%.*s@%s]",
  					sptr->name, USERLEN,
  					(!(sptr->flags & FLAGS_GOTID)) ? "" :
--					sptr->auth, sptr->user ? sptr->user->sip :
++#ifdef SPOOF
 +					sptr->auth, sptr->user ? get_client_ip(sptr) :
++#else
+ 					sptr->auth, sptr->user ? sptr->user->sip :
++#endif
  #ifdef INET6 
  					      inetntop(AF_INET6,
  						       (char *)&sptr->ip,
-@@ -247,6 +247,18 @@
+ 						       ipv6string, sizeof(ipv6string))
+ #else
+ 					      inetntoa((char *)&sptr->ip)
+ #endif
+@@ -243,14 +247,28 @@ char	*get_client_host(aClient *cptr)
+ 		(void)sprintf(nbuf, "%s[%-.*s@%-.*s]",
+ 			cptr->name, USERLEN,
+ 			(!(cptr->flags & FLAGS_GOTID)) ? "" : cptr->auth,
+ 			HOSTLEN, cptr->user->sip);
  	return nbuf;
  }
  
++#ifdef SPOOF
 +char	*get_client_ip(aClient *cptr)
 +{
 +	if(IsSpoofed(cptr))
@@ -218,109 +426,222 @@ diff -ruN irc2.11.2p3.orig/ircd/s_misc.c irc2.11.2p3/ircd/s_misc.c
 +		return cptr->user->sip;
 +	}
 +}
++#endif
 +
  /*
   * Form sockhost such that if the host is of form user@host, only the host
   * portion is copied.
-diff -ruN irc2.11.2p3.orig/ircd/s_misc_ext.h irc2.11.2p3/ircd/s_misc_ext.h
---- irc2.11.2p3.orig/ircd/s_misc_ext.h	2004-03-14 18:46:00.000000000 +0100
-+++ irc2.11.2p3/ircd/s_misc_ext.h	2019-12-31 20:13:45.498772535 +0100
-@@ -42,6 +42,7 @@
+  */
+ void	get_sockhost(aClient *cptr, char *host)
+ {
+ 	Reg	char	*s;
+diff '--exclude=*.rej' -prNU 7 old/ircd/s_misc_ext.h new/ircd/s_misc_ext.h
+--- old/ircd/s_misc_ext.h
++++ new/ircd/s_misc_ext.h
+@@ -38,14 +38,17 @@ extern time_t motd_mtime;
+ #endif /* S_MISC_C */
+ EXTERN char *date (time_t clock);
+ EXTERN int check_registered_user (aClient *sptr);
+ EXTERN int check_registered (aClient *sptr);
  EXTERN int check_registered_service (aClient *sptr);
  EXTERN char *get_client_name (aClient *sptr, int showip);
  EXTERN char *get_client_host (aClient *cptr);
++#ifdef SPOOF
 +EXTERN char *get_client_ip (aClient *cptr);
++#endif
  EXTERN void get_sockhost (Reg aClient *cptr, Reg char *host);
  EXTERN char *my_name_for_link (char *name, Reg int count);
  EXTERN int mark_blind_servers (aClient *cptr, aClient *server);
-diff -ruN irc2.11.2p3.orig/ircd/s_serv.c irc2.11.2p3/ircd/s_serv.c
---- irc2.11.2p3.orig/ircd/s_serv.c	2010-08-12 18:24:31.000000000 +0200
-+++ irc2.11.2p3/ircd/s_serv.c	2019-12-31 20:13:45.498772535 +0100
-@@ -1264,7 +1264,7 @@
+ EXTERN int exit_client (aClient *cptr, aClient *sptr, aClient *from,
+ 			    const char *comment);
+ EXTERN void checklist(void);
+ EXTERN void initstats(void);
+diff '--exclude=*.rej' -prNU 7 old/ircd/s_serv.c new/ircd/s_serv.c
+--- old/ircd/s_serv.c
++++ new/ircd/s_serv.c
+@@ -1260,15 +1260,19 @@ int	m_server_estab(aClient *cptr, char *
+ 			send_umode(NULL, acptr, 0, SEND_UMODES, buf);
+ 			sendto_one(cptr,
+ 					   ":%s UNICK %s %s %s %s %s %s :%s",
+ 					   acptr->user->servp->sid,
  					   acptr->name, acptr->user->uid,
  					   acptr->user->username,
  					   acptr->user->host,
--					   acptr->user->sip,
++#ifdef SPOOF
 +					   get_client_ip(acptr),
++#else
+ 					   acptr->user->sip,
++#endif
  					   (*buf) ? buf : "+", acptr->info);
  		    }
  		else if (IsService(acptr) &&
-@@ -1783,6 +1783,9 @@
+ 			 (match(acptr->service->dist, cptr->name) == 0 ||
+ 				match(acptr->service->dist, cptr->serv->sid) == 0))
+ 		{
+ 			sendto_one(cptr, ":%s SERVICE %s %s %d :%s",
+@@ -1779,14 +1783,18 @@ static	void	report_configured_links(aCli
+ 					   c, host, (pass) ? pass : null,
+ 					   name, tmp->hold - timeofday,
+ 					   get_conf_class(tmp));
+ 			}
  #endif
  			else if ((tmp->status & CONF_CLIENT))
  			{
++#ifdef SPOOF
 +				if(IsConfSpoofed(tmp))
 +					continue;
-+
++#endif
  				sendto_one(sptr, replies[p[1]], ME, BadTo(to),
  					   c, host, (pass) ? "*" : null,
  					   name, port, get_conf_class(tmp),
-@@ -2880,7 +2883,7 @@
- 				IsAnOper(acptr) ? "Oper" : "User", 
- 				get_client_class(acptr), 
- 				acptr->name, acptr->user->username, 
--				acptr->user->host, acptr->user->sip,
+ 					   iline_flags_to_string(tmp->flags));
+ 
+ 			}
+ 			else if ((tmp->status & CONF_OPERATOR))
+@@ -2853,15 +2861,19 @@ int	m_etrace(aClient *cptr, aClient *spt
+ 	{
+ 		if ((acptr = find_person(parv[1], NULL)) && MyClient(acptr))
+ 			sendto_one(sptr, replies[RPL_ETRACEFULL],
+ 				ME, sptr->name,
+ 				IsAnOper(acptr) ? "Oper" : "User",
+ 				get_client_class(acptr),
+ 				acptr->name, acptr->user->username,
++#ifdef SPOOF
 +				acptr->user->host, get_client_ip(acptr),
++#else
+ 				acptr->user->host, acptr->user->sip,
++#endif
  #ifdef XLINE
  				acptr->user2, acptr->user3, 
  #else
-@@ -2916,7 +2919,7 @@
+ 				"-", "-",
+ #endif
+ 				acptr->info);
+ 	}
+@@ -2876,15 +2888,19 @@ int	m_etrace(aClient *cptr, aClient *spt
+ 				continue;
+ 		
+ 			sendto_one(sptr, replies[RPL_ETRACEFULL],
+ 				ME, sptr->name, 
+ 				IsAnOper(acptr) ? "Oper" : "User", 
+ 				get_client_class(acptr), 
+ 				acptr->name, acptr->user->username, 
++#ifdef SPOOF
++				acptr->user->host, get_client_ip(acptr),
++#else
+ 				acptr->user->host, acptr->user->sip,
++#endif
+ #ifdef XLINE
+ 				acptr->user2, acptr->user3, 
+ #else
+ 				"-", "-",
+ #endif
+ 				acptr->info);
+ 		}
+@@ -2912,15 +2928,19 @@ int	m_sidtrace(aClient *cptr, aClient *s
+ 			continue;
+ 
+ 		sendto_one(sptr, replies[RPL_ETRACEFULL],
+ 			ME, sptr->name,
  			IsAnOper(acptr) ? "Oper" : "User", 
  			MyClient(acptr) ? get_client_class(acptr) : -1, 
  			acptr->name, acptr->user->username,
 -			acptr->user->host, acptr->user->sip, 
-+			acptr->user->host, get_client_ip(acptr), 
++#ifdef SPOOF
++			acptr->user->host, get_client_ip(acptr),
++#else
++			acptr->user->host, acptr->user->sip,
++#endif
  #ifdef XLINE
  			MyClient(acptr) ? acptr->user2 : "-",
  			MyClient(acptr) ? acptr->user3 : "-",
-diff -ruN irc2.11.2p3.orig/ircd/s_service.c irc2.11.2p3/ircd/s_service.c
---- irc2.11.2p3.orig/ircd/s_service.c	2010-08-12 03:08:02.000000000 +0200
-+++ irc2.11.2p3/ircd/s_service.c	2019-12-31 20:13:45.498772535 +0100
-@@ -180,7 +180,7 @@
+ #else
+ 			"-", "-",
+ #endif
+ 			acptr->info);
+diff '--exclude=*.rej' -prNU 7 old/ircd/s_service.c new/ircd/s_service.c
+--- old/ircd/s_service.c
++++ new/ircd/s_service.c
+@@ -176,15 +176,19 @@ static	void	sendnum_toone(aClient *cptr,
+ 	if ((wants & SERVICE_WANT_UID) && sptr->user)
+ 		sendto_one(cptr, ":%s UNICK %s %s %s %s %s %s :%s",
+ 			sptr->user->servp->sid,
+ 			(wants & SERVICE_WANT_NICK) ? sptr->name : ".",
  			sptr->user->uid,
  			(wants & SERVICE_WANT_USER) ? sptr->user->username : ".",
  			(wants & SERVICE_WANT_USER) ? sptr->user->host : ".",
--			(wants & SERVICE_WANT_USER) ? sptr->user->sip : ".",
++#ifdef SPOOF
 +			(wants & SERVICE_WANT_USER) ? get_client_ip(sptr) : ".",
++#else
+ 			(wants & SERVICE_WANT_USER) ? sptr->user->sip : ".",
++#endif
  			(wants & (SERVICE_WANT_UMODE|SERVICE_WANT_OPER)) ? umode : "+",
  			(wants & SERVICE_WANT_USER) ? sptr->info : "");
  	else
-diff -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
---- irc2.11.2p3.orig/ircd/s_user.c	2010-08-12 18:29:30.000000000 +0200
-+++ irc2.11.2p3/ircd/s_user.c	2019-12-31 20:13:58.150793257 +0100
-@@ -581,6 +581,9 @@
+ 	if (wants & SERVICE_WANT_EXTNICK)
+ 		/* extended NICK syntax */
+ 		sendto_one(cptr, "NICK %s %d %s %s %s %s :%s",
+ 			   (wants & SERVICE_WANT_NICK) ? sptr->name : ".",
+diff '--exclude=*.rej' -prNU 7 old/ircd/s_user.c new/ircd/s_user.c
+--- old/ircd/s_user.c
++++ new/ircd/s_user.c
+@@ -577,14 +577,19 @@ int	register_user(aClient *cptr, aClient
+ 			{
+ 				sendto_flag(SCH_LOCAL, "%s from %s.",
+ 					exit_msg[i].longm,
+ 					get_client_host(sptr));
  			}
  			return exit_client(cptr, cptr, &me, exit_msg[i].longm);
  		}
 +
++#ifdef SPOOF
 +		aconf = sptr->confs->value.aconf;
++#endif
 +
  #ifndef	NO_PREFIX
  		if (IsRestricted(sptr))
  		{
-@@ -596,9 +599,16 @@
+ 			if (!(sptr->flags & FLAGS_GOTID))
+ 				prefix = '-';
+ 			else
+ 				if (*sptr->username == '-' ||
+@@ -592,17 +597,26 @@ int	register_user(aClient *cptr, aClient
+ 					prefix = '=';
+ 				else
+ 					prefix = '+';
+ 			*user->username = prefix;
  			strncpy(&user->username[1], buf2, USERLEN);
  			user->username[USERLEN] = '\0';
  		}
--#endif
++
++#ifdef SPOOF
++		if(IsConfSpoofed(aconf))
++		{
++			prefix = '_';
++			*user->username = prefix;
++			strncpy(&user->username[1], buf2, USERLEN);
++			user->username[USERLEN] = '\0';
++		}
++#endif
+ #endif
  
 -		aconf = sptr->confs->value.aconf;
-+		if(IsConfSpoofed(aconf))
-+                {
-+                        prefix = '_';
-+                        *user->username = prefix;
-+                        strncpy(&user->username[1], buf2, USERLEN);
-+                        user->username[USERLEN] = '\0';
-+
-+                }
-+#endif
  #ifdef UNIXPORT
  		if (IsUnixSocket(sptr))
  		{
-@@ -783,6 +793,14 @@
- 				" but still matches channel MODEs.",
- 				ME, nick);
+ 			strncpyzt(user->host, me.sockhost, HOSTLEN+1);
  		}
+ 		else
+ #endif
+@@ -766,14 +780,24 @@ int	register_user(aClient *cptr, aClient
+ 		
+ 		sendto_one(sptr, replies[RPL_YOURID], ME, BadTo(parv[0]),
+ 			sptr->user->uid);
+ 		(void)m_lusers(sptr, sptr, 1, parv);
+ 		(void)m_motd(sptr, sptr, 1, parv);
+ 		if (IsRestricted(sptr))
+ 			sendto_one(sptr, replies[ERR_RESTRICTED], ME, BadTo(nick));
++
 +#ifdef SPOOF_NOTICE
 +		/* send a notice to client if the connection is spoofed.
 +		 * notice is defined as SPOOF_NOTICE in config.h -- mh 20191230 */
@@ -329,21 +650,41 @@ diff -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
 +			sendto_one(sptr, ":%s NOTICE %s :%s", ME, nick, SPOOF_NOTICE);
 +		}
 +#endif
- 		send_umode(sptr, sptr, 0, ALL_UMODES, buf);
- 		nextping = timeofday;
- 		
-@@ -806,7 +824,7 @@
++
+ 		if (IsConfNoResolve(sptr->confs->value.aconf))
+ 		{
+ 			sendto_one(sptr, ":%s NOTICE %s :Due to an administrative"
+ 				" decision, your hostname is not shown.",
+ 				ME, nick);
+ 		}
+ 		else if (IsConfNoResolveMatch(sptr->confs->value.aconf))
+@@ -802,15 +826,19 @@ int	register_user(aClient *cptr, aClient
+ 			acptr == cptr || IsMe(acptr))
+ 		{
+ 			continue;
+ 		}
  		sendto_one(acptr,
  				":%s UNICK %s %s %s %s %s %s :%s",
  				user->servp->sid, nick, user->uid,
--				user->username, user->host, user->sip,
++#ifdef SPOOF
 +				user->username, user->host, get_client_ip(sptr),
++#else
+ 				user->username, user->host, user->sip,
++#endif
  				(*buf) ? buf : "+", sptr->info);
  	}	/* for(my-leaf-servers) */
  #ifdef	USE_SERVICES
-@@ -2040,6 +2058,15 @@
+ #if 0
+ 	check_services_butone(SERVICE_WANT_NICK, user->servp, NULL,
+ 			      "NICK %s :%d", nick, sptr->hopcount+1);
+ 	check_services_butone(SERVICE_WANT_USER, user->servp, sptr,
+@@ -2039,14 +2067,23 @@ static	void	send_whois(aClient *sptr, aC
+ 
  	if (user->flags & FLAGS_AWAY)
  		send_away(sptr, user->bcptr);
+ 
+ 	if (IsAnOper(acptr))
+ 		sendto_one(sptr, replies[RPL_WHOISOPERATOR], ME, BadTo(sptr->name), name);
  
 +#ifdef SPOOF_WHOISCLOAKED
 +	/* send a 320 numeric reply if client is spoofed.
@@ -352,42 +693,184 @@ diff -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
 +	{
 +		sendto_one(sptr, replies[RPL_WHOISCLOAKED], ME, BadTo(sptr->name), name, SPOOF_WHOISCLOAKED);
 +	}
-+
 +#endif
- 	if (IsAnOper(acptr))
- 		sendto_one(sptr, replies[RPL_WHOISOPERATOR], ME, BadTo(sptr->name), name);
++
+ 	if (acptr->user && MyConnect(acptr))
+ 		sendto_one(sptr, replies[RPL_WHOISIDLE], ME, BadTo(sptr->name),
+ 			   name, (long)(timeofday - user->last)
+ #ifdef WHOIS_SIGNON_TIME
+ 			, (long)acptr->firsttime
+ #endif
+ 			);
+@@ -2201,14 +2238,17 @@ int	m_user(aClient *cptr, aClient *sptr,
+ 	};
  
-diff -ruN irc2.11.2p3.orig/support/config.h.dist irc2.11.2p3/support/config.h.dist
---- irc2.11.2p3.orig/support/config.h.dist	2010-08-13 21:53:03.000000000 +0200
-+++ irc2.11.2p3/support/config.h.dist	2019-12-31 20:13:58.150793257 +0100
-@@ -139,6 +139,30 @@
+ 	char	*username, *umodes, *server, *realname;
+ 	anUser	*user;
+ 	char	ipbuf[BUFSIZE];
+ 	int	what,i;
+ 	char 	*s;
++#ifdef PASSOPTS
++	Reg char *passopts; /* password options set in extended PASS argument --mh 20200102 */
++#endif
+ 
+ 	if (MyConnect(cptr) && IsUnknown(cptr) &&
+ 		IsConfServeronly(cptr->acpt->confs->value.aconf))
+ 	{
+ 		sendto_flag(SCH_LOCAL, "User connection to server-only P-line "
+ 			"from %s", get_client_host(cptr));
+ 		find_bounce(cptr, -1, -1);
+@@ -2296,15 +2336,70 @@ int	m_user(aClient *cptr, aClient *sptr,
+ 			}
+ 		}
+ 	}
+ 	user->server = find_server_string(me.serv->snum);
+ 	
+ 	reorder_client_in_list(sptr);
+ 	if (sptr->info != DefInfo)
++#ifdef PASSOPTS
++	{
++		/* if we have extended PASS arguments, attempt to parse them.
++		 *
++		 * current proposal:
++		 *
++		 * PASS <password> [<passopts>]
++		 *
++		 * ignore remaining arguments if any
++		 *
++		 * passopts:  integer (in base 10 only) bitfield of password options:
++		 *              0x01  require I-line password match client password
++		 *
++		 *            ignore unknown bits if any and allow prepended 0s
++		 *
++		 * ex.: PASS mustmatch 1
++		 *      PASS dontcare 0
++		 *      PASS mustmatch 007
++		 *      PASS dontcare 42
++		 *      PASS mustmatch 1 anything...
++		 *
++		 *  --mh 20200102 */
++
++		/* do we need to check if sptr->info is NULL first? i dont think so --mh 20200102 */
++		if (strlen(sptr->info) > 0)
++		{
++			/* extended PASS arguments found */
++
++			for (s = passopts = strtoken(&s, sptr->info, " "); *s; s++)
++			{
++				if (!isdigit(*s))
++				{
++					/* passopts must be numeric only */
++					break;
++				}
++			}
++
++			if (*s == '\0')
++			{
++				/* passopts valid, parse it */
++
++				i = atoi(passopts); /* overflow checking needed? --mh 20200102 */
++
++				if (i & 0x01) /* buh! hardcoded value */
++				{
++					/* password required to match I-line password */
++					SetReqPass(sptr);
++				}
++			}
++		}
++
+ 		MyFree(sptr->info);
++	}
++#else
++		MyFree(sptr->info);
++#endif
+ 	if (strlen(realname) > REALLEN)
+ 		realname[REALLEN] = '\0';
+ 	sptr->info = mystrdup(realname);
+ #ifdef XLINE
+ 	sptr->user2 = mystrdup(umodes);
+ 	sptr->user3 = mystrdup(server);
+ #endif
+diff '--exclude=*.rej' -prNU 7 old/support/config.h.dist new/support/config.h.dist
+--- old/support/config.h.dist
++++ new/support/config.h.dist
+@@ -134,14 +134,63 @@
+ #define	OPER_SQUIT_REMOTE
+ #define	OPER_KLINE
+ #define	OPER_TKLINE
+ /* In a perfect world these two (or at least second) would be undefined. */
+ #define	OPER_KILL
  #define	OPER_KILL_REMOTE
  
- /*
-+ * spoof
-+ *
-+ */
-+	/*
-+	 * undefine SPOOF_NOTICE to disable sending a notice to cloaked clients
-+	 * when connecting
-+	 *
-+	 */
-+	#define SPOOF_NOTICE "Due to an administrative decision, your connection is cloaked."
-+
-+	/*
-+	 * undefine SPOOF_WHOISCLOAKED to disable sending a 320 numeric in /WHOIS
-+	 * reply for cloaked (local) clients. non-standard use of 320.
-+	 *
-+	 */
-+	#define SPOOF_WHOISCLOAKED "connection is cloaked (spoof)"
-+
-+	/*
-+	 * undefine SPOOF_STATSDEFINE to disable showing spoof defines in /STATS d
-+	 *
-+	 */
-+	#define SPOOF_STATSDEFINE
 +
 +/*
++ * spoof
++ *
++ * undefine SPOOF to disable spoofing hostnames in I-lines
++ *
++ */
++#define SPOOF
++
++#ifdef SPOOF
++/*
++ * undefine SPOOF_NOTICE to disable sending a notice to cloaked clients
++ * when connecting
++ *
++ */
++#define SPOOF_NOTICE "Due to an administrative decision, your connection is cloaked."
++
++/*
++ * undefine SPOOF_WHOISCLOAKED to disable sending a 320 numeric in /WHOIS
++ * reply for cloaked (local) clients. non-standard use of 320.
++ *
++ */
++#define SPOOF_WHOISCLOAKED "connection is cloaked (spoof)"
++
++/*
++ * undefine SPOOF_STATSDEFINE to disable showing spoof defines in /STATS d
++ *
++ */
++#define SPOOF_STATSDEFINE
++
++/*
++ * undefine SPOOF_PASSWDLEN to use default password length or define
++ * to the length you want
++ *
++ */
++#define SPOOF_PASSWDLEN 128
++
++#endif
++
++
++/*
++ * passopts
++ *
++ * undefine PASSOPTS to disable support for extended PASS options
++ *
++ */
++#define PASSOPTS
++
++
+ /*
   * Maximum number of network connections your server will allow.  This must
   * not exceed OS limit of max. number of open file descriptors available upon
   * ircd start.
+  * If you have a lot of server connections, it may be worth splitting the load
+  * over 2 or more servers.
+  * 1 server = 1 connection, 1 user = 1 connection.
+@@ -951,7 +1000,15 @@
+ #endif
+ 
+ #if defined(CACCEPT_DEFAULT)
+ #if ((CACCEPT_DEFAULT) > 2) || ((CACCEPT_DEFAULT) < 0)
+ #error CACCEPT_DEFAULT can be 0, 1 or 2.
+ #endif
+ #endif
++
++#ifndef SPOOF
++/* we dont want these hanging around if SPOOF is not defined -- mh 20200105 */
++#undef SPOOF_NOTICE
++#undef SPOOF_WHOISCLOAKED
++#undef SPOOF_STATSDEFINE
++#undef SPOOF_PASSWDLEN
++#endif
