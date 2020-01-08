@@ -1,0 +1,171 @@
+diff '--exclude=x86_64-unknown-linux-gnu' -ruN irc2.11.2p3.orig/common/parse.c irc2.11.2p3/common/parse.c
+--- irc2.11.2p3.orig/common/parse.c	2010-08-12 18:29:30.000000000 +0200
++++ irc2.11.2p3/common/parse.c	2020-01-08 21:42:36.934330681 +0100
+@@ -699,7 +699,7 @@
+ 		if (!(IsServer(cptr) || IsService(cptr)))
+ 		    {	/* Flood control partly migrated into penalty */
+ 			if ((bootopt & BOOT_PROT) &&
+-				!is_allowed(cptr, ACL_NOPENALTY))
++				!is_allowed(cptr, ACL_NOPENALTY) && !IsNoPenalty(cptr))
+ 				cptr->since += (1 + i / 100);
+ 			else
+ 				cptr->since = timeofday;
+@@ -801,7 +801,7 @@
+ 	** a LOCAL user client.
+ 	*/
+ 	if ((ret > 0) && IsRegisteredUser(cptr) && (bootopt & BOOT_PROT)
+-		&& !is_allowed(cptr, ACL_NOPENALTY))
++		&& !is_allowed(cptr, ACL_NOPENALTY) && !IsNoPenalty(cptr))
+ 	    {
+ 		cptr->since += ret;
+ /* only to lurk
+diff '--exclude=x86_64-unknown-linux-gnu' -ruN irc2.11.2p3.orig/common/struct_def.h irc2.11.2p3/common/struct_def.h
+--- irc2.11.2p3.orig/common/struct_def.h	2009-11-13 21:08:10.000000000 +0100
++++ irc2.11.2p3/common/struct_def.h	2020-01-08 23:42:21.243630224 +0100
+@@ -195,6 +195,11 @@
+ #ifdef XLINE
+ #define FLAGS_XLINED	0x0100	/* X-lined client */
+ #endif
++
++#define FLAGS_CANFLOOD	0x0400
++#define FLAGS_NOPENALTY 0x0800
++#define FLAGS_NONICKDELAY 0x1000
++
+ #define	SEND_UMODES	(FLAGS_INVISIBLE|FLAGS_OPER|FLAGS_WALLOP|FLAGS_AWAY|FLAGS_RESTRICT)
+ #define	ALL_UMODES	(SEND_UMODES|FLAGS_LOCOP)
+ 
+@@ -220,6 +225,9 @@
+ #define	IsDead(x)		((x)->flags & FLAGS_DEADSOCK)
+ #define	IsBursting(x)		(!((x)->flags & FLAGS_EOB))
+ #define IsKlineExempt(x)        ((x)->user && (x)->user->flags & FLAGS_EXEMPT)
++#define IsNoPenalty(x)		((x)->user && (x)->user->flags & FLAGS_NOPENALTY)
++#define IsCanFlood(x)		((x)->user && (x)->user->flags & FLAGS_CANFLOOD)
++#define IsNoNickDelay(x)	((x)->user && (x)->user->flags & FLAGS_NONICKDELAY)
+ 
+ #define	SetDead(x)		((x)->flags |= FLAGS_DEADSOCK)
+ #define	CBurst(x)		((x)->flags & FLAGS_CBURST)
+@@ -239,6 +247,10 @@
+ #define SetListenerInactive(x)	((x)->flags |= FLAGS_LISTENINACTIVE)
+ #define SetKlineExempt(x)	((x)->user->flags |= FLAGS_EXEMPT)
+ 
++#define SetNoPenalty(x)		((x)->user->flags |= FLAGS_NOPENALTY)
++#define SetCanFlood(x)		((x)->user->flags |= FLAGS_CANFLOOD)
++#define SetNoNickDelay(x)	((x)->user->flags |= FLAGS_NONICKDELAY)
++
+ #define	DoingDNS(x)		((x)->flags & FLAGS_DOINGDNS)
+ #define	DoingAuth(x)		((x)->flags & FLAGS_AUTH)
+ #define	DoingXAuth(x)		((x)->flags & FLAGS_XAUTH)
+@@ -375,6 +387,9 @@
+ #ifdef XLINE
+ #define CFLAG_XEXEMPT		0x00080
+ #endif
++#define CFLAG_NOPENALTY		0x00100
++#define CFLAG_CANFLOOD		0x00200
++#define CFLAG_NONICKDELAY	0x00400
+ 
+ #define IsConfRestricted(x)	((x)->flags & CFLAG_RESTRICTED)
+ #define IsConfRNoDNS(x)		((x)->flags & CFLAG_RNODNS)
+@@ -386,6 +401,9 @@
+ #ifdef XLINE
+ #define IsConfXlineExempt(x)	((x)->flags & CFLAG_XEXEMPT)
+ #endif
++#define IsConfNoPenalty(x)	((x)->flags & CFLAG_NOPENALTY)
++#define IsConfCanFlood(x)	((x)->flags & CFLAG_CANFLOOD)
++#define IsConfNoNickDelay(x)	((x)->flags & CFLAG_NONICKDELAY)
+ 
+ #define PFLAG_DELAYED		0x00001
+ #define PFLAG_SERVERONLY	0x00002
+diff '--exclude=x86_64-unknown-linux-gnu' -ruN irc2.11.2p3.orig/ircd/s_bsd.c irc2.11.2p3/ircd/s_bsd.c
+--- irc2.11.2p3.orig/ircd/s_bsd.c	2010-08-13 21:58:46.000000000 +0200
++++ irc2.11.2p3/ircd/s_bsd.c	2020-01-08 21:43:23.757467333 +0100
+@@ -2089,7 +2089,8 @@
+ 
+ 		if (IsPerson(cptr) &&
+ 		    DBufLength(&cptr->recvQ) > CLIENT_FLOOD
+-		    && !is_allowed(cptr, ACL_CANFLOOD))
++		    && !is_allowed(cptr, ACL_CANFLOOD)
++		    && !IsCanFlood(cptr))
+ 		    {
+ 			cptr->exitc = EXITC_FLOOD;
+ 			return exit_client(cptr, cptr, &me, "Excess Flood");
+diff '--exclude=x86_64-unknown-linux-gnu' -ruN irc2.11.2p3.orig/ircd/s_conf.c irc2.11.2p3/ircd/s_conf.c
+--- irc2.11.2p3.orig/ircd/s_conf.c	2010-08-11 19:16:51.000000000 +0200
++++ irc2.11.2p3/ircd/s_conf.c	2020-01-08 23:21:02.037883111 +0100
+@@ -127,6 +127,18 @@
+ 	{
+ 		tmp |= CFLAG_FALL;
+ 	}
++        if (index(string,'P'))
++        {
++                tmp |= CFLAG_NOPENALTY;
++        }
++        if (index(string,'p'))
++        {
++                tmp |= CFLAG_CANFLOOD;
++        }
++        if (index(string,'n'))
++        {
++                tmp |= CFLAG_NONICKDELAY;
++        }
+ 
+ 	return tmp;
+ }
+@@ -171,6 +183,18 @@
+ 	{
+ 		*s++ = 'F';
+ 	}
++        if (flags & CFLAG_NOPENALTY)
++        {
++                *s++ = 'P';
++        }
++        if (flags & CFLAG_CANFLOOD)
++        {
++                *s++ = 'p';
++        }
++	if (flags & CFLAG_NONICKDELAY)
++	{
++		*s++ = 'n';
++	}
+ 	if (s == ifsbuf)
+ 	{
+ 		*s++ = '-';
+@@ -602,7 +626,18 @@
+ 			ClearXlined(cptr);
+ 		}
+ #endif
+-
++		if(IsConfNoPenalty(aconf))
++		{
++			SetNoPenalty(cptr);
++		}
++		if(IsConfCanFlood(aconf))
++		{
++			SetCanFlood(cptr);
++		}
++		if(IsConfNoNickDelay(aconf))
++		{
++			SetNoNickDelay(cptr);
++		}
+ 		/* Copy uhost (hostname) over sockhost, if conf flag permits. */
+ 		if (hp && !IsConfNoResolve(aconf))
+ 		{
+diff '--exclude=x86_64-unknown-linux-gnu' -ruN irc2.11.2p3.orig/ircd/s_user.c irc2.11.2p3/ircd/s_user.c
+--- irc2.11.2p3.orig/ircd/s_user.c	2010-08-12 18:29:30.000000000 +0200
++++ irc2.11.2p3/ircd/s_user.c	2020-01-08 23:09:42.861803672 +0100
+@@ -599,6 +599,7 @@
+ #endif
+ 
+ 		aconf = sptr->confs->value.aconf;
++
+ #ifdef UNIXPORT
+ 		if (IsUnixSocket(sptr))
+ 		{
+@@ -1017,7 +1018,7 @@
+ 			** their nicks. --Beeth
+ 			*/
+ 			delayed = 1;
+-		else
++		else if(!IsNoNickDelay(sptr))
+ 			/*
+ 			** Let ND work
+ 			*/
