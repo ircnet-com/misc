@@ -225,7 +225,8 @@ public:
         else if (rc != GSASL_NEEDS_MORE) {
             if (rc != GSASL_OK) {
                 PutModule(t_f("Authentication error ({1}): {2}")(rc, gsasl_strerror(rc)));
-                return;
+                CheckRequireAuth();
+                GetNetwork()->GetIRCSock()->ResumeCap();
             }
 
             gsasl_finish(session);
@@ -307,7 +308,6 @@ public:
             PutModule(t_s("SASL authentication failed."));
             CheckRequireAuth();
             GetNetwork()->GetIRCSock()->ResumeCap();
-
         }
         else if (msg.GetCode() == 906) {
             // ERR_SASLABORTED
@@ -344,5 +344,4 @@ private:
 template<> void TModInfo<CSASLMod>(CModInfo &Info) {
 }
 
-NETWORKMODULEDEFS(CSASLMod, t_s("SASL authentication based on libgsasl")
-)
+NETWORKMODULEDEFS(CSASLMod, t_s("SASL authentication based on libgsasl"))
