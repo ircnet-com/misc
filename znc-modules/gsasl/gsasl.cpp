@@ -211,18 +211,25 @@ public:
         int rc = gsasl_step64(session, buf, &p);
 
         if (rc == GSASL_NEEDS_MORE || rc == GSASL_OK) {
-            if(rc == GSASL_NEEDS_MORE) {
-                CString sLine = "AUTHENTICATE " + CString(p);
-                PutIRC(sLine);
+            CString sLine;
 
-                if (verbose) {
-                    PutModule(t_f("Sent: {1}")(sLine));
-                }
+            if(rc == GSASL_NEEDS_MORE) {
+                sLine = "AUTHENTICATE " + CString(p);
+            }
+            else if(rc == GSASL_OK) {
+                sLine = "AUTHENTICATE +";
+            }
+
+            PutIRC(sLine);
+
+            if (verbose) {
+                PutModule(t_f("Sent: {1}")(sLine));
             }
 
             gsasl_free(p);
         }
-        else if (rc != GSASL_NEEDS_MORE) {
+
+        if (rc != GSASL_NEEDS_MORE) {
             if (rc != GSASL_OK) {
                 PutModule(t_f("Authentication error ({1}): {2}")(rc, gsasl_strerror(rc)));
                 CheckRequireAuth();
